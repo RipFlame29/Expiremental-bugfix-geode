@@ -4,40 +4,10 @@
 
 using namespace geode::prelude;
 
-// ---------------------------------------------------------------------
-// Experimental Bugfix's
-//
-// THE BUG: dense levels with a late StartPos (lots of accumulated group
-// usage by the time the StartPos position is reached) would silently
-// fail to open in normal mode - the loading circle finishes, then
-// nothing happens, no crash, no error. Playtesting from the editor
-// was unaffected.
-//
-// ROOT CAUSE (found via extensive hook-based diagnostics against the
-// real GeometryDash.bro bindings): GJBaseGameLayer::shouldExitHackedLevel()
-// returns true and the engine self-quits (via onQuit) as a safety
-// mechanism, triggered once the highest group ID used in the level gets
-// close to/at the internal group table's capacity (GJBaseGameLayer's
-// m_groups vector, hardcoded to 10000 slots and iterated unchecked by
-// sortAllGroupsX() - confirmed in the bindings). We verified m_groups
-// itself is NOT undersized/out-of-bounds at that point, so this is a
-// deliberate but overly conservative threshold check misfiring on
-// legitimately large, dense levels - not a reaction to real corruption.
-//
-// THE FIX: override shouldExitHackedLevel()'s result to false, but ONLY
-// when our own tracked max group ID is high enough (>= 9000) to match
-// the exact condition we diagnosed - not a blanket suppression of every
-// possible reason this function might fire.
-// ---------------------------------------------------------------------
-
 static bool debugOverlayEnabled() {
     return Mod::get()->getSettingValue<bool>("show-debug-overlay");
 }
 
-// ---------------------------------------------------------------------
-// Optional on-screen debug overlay - only active if the user enables it
-// in mod settings. Off by default for normal use.
-// ---------------------------------------------------------------------
 class DiagOverlay : public CCLayer {
 public:
     static DiagOverlay* get() {
@@ -116,9 +86,6 @@ static void diagLog(std::string const& line) {
     overlay->pushLine(line);
 }
 
-// ---------------------------------------------------------------------
-// The actual fix
-// ---------------------------------------------------------------------
 class $modify(BugfixGJBaseGameLayer, GJBaseGameLayer) {
     struct Fields {
         int m_maxGroupIDSeen = 0;
@@ -134,8 +101,6 @@ class $modify(BugfixGJBaseGameLayer, GJBaseGameLayer) {
     bool shouldExitHackedLevel() {
         bool result = GJBaseGameLayer::shouldExitHackedLevel();
 
-        // Only override when we believe the high-group-count condition we
-        // diagnosed is actually why this fired - not a blanket suppression.
         bool overriding = result && (m_fields->m_maxGroupIDSeen >= 9000);
 
         if (debugOverlayEnabled()) {
@@ -160,8 +125,7 @@ class $modify(BugfixPlayLayer, PlayLayer) {
             auto overlay = DiagOverlay::get();
             overlay->attachToRunningScene();
         } else if (DiagOverlay::get()->getParent()) {
-            // make sure a previously-shown overlay doesn't linger if the
-            // user disabled the setting mid-session
+            
             DiagOverlay::get()->setHidden(true);
         }
 
