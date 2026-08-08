@@ -1,0 +1,25 @@
+{
+        "geode": "5.8.2",
+        "gd": {
+                "win": "2.2081",
+                "android": "2.2081",
+                "mac": "2.2081",
+                "ios": "2.2081"
+        },
+        "id": "ripflame29.experimental-bugfixes",
+        "name": "Experimental Bugfix's",
+        "version": "v1.1.0",
+        "developer": "RipFlame29",
+        "description": "Fixes bugs in GD, starting with dense levels with late StartPos failing to open in normal mode",
+        "dependencies": {
+                "geode.node-ids": ">=v1.23.3"
+        },
+        "settings": {
+                "show-debug-overlay": {
+                        "name": "Show Debug Overlay",
+                        "description": "Shows an on-screen log of what the fix is doing while a level loads. Leave off for normal use.",
+                        "type": "bool",
+                        "default": false
+                }
+        }
+}
